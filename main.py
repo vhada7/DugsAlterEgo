@@ -42,7 +42,7 @@ def comment_recent_posts(driver):
     i = 0
     for comment_button in comment_sections:
         # check if we have already commented
-        if "keepyourdamnpotato" not in str(comment_button.text):
+        if get_credentials()[0] not in str(comment_button.text):
             comment(comment_button)
         else:
             print("Skipping\n\n{}\n\nAlready commented...\n".format(comment_button.text))
