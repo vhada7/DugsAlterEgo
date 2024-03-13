@@ -7,6 +7,7 @@ import time
 import random
 
 COMMENTS = list(map(lambda x: x.strip(), open("comments_raw.txt").readlines()))
+POSTS_TO_COMMENT_ON = 10
 
 def get_credentials():
     return list(map(lambda x: x.strip(), open("credentials.txt").readlines()))
@@ -35,23 +36,33 @@ def comment(comment_section):
     time.sleep(3)
 
 
-def comment_recent_posts(driver):
-    comment_buttons = WebDriverWait(driver, 3).until(lambda x: x.find_elements(By.XPATH, '//textarea[contains(@aria-label, "Add a comment")]')) 
-    comment_sections = list(map(lambda x: parent(parent(parent(parent(parent(parent(x)))))), comment_buttons))
-    print("Commenting on {} posts...".format(len(comment_sections)))
-    i = 0
-    for comment_button in comment_sections:
-        # check if we have already commented
-        if get_credentials()[0] not in str(comment_button.text):
-            comment(comment_button)
+def comment_on_x_posts(driver, x):
+    commented = 0
+    commented_set = set()
+    scroll_height = 0
+    # scroll until we find enough posts
+    while commented < x:
+        # find comment buttons
+        tmp = WebDriverWait(driver, 3).until(lambda x: x.find_elements(By.XPATH, '//textarea[contains(@aria-label, "Add a comment")]')) 
+        comment_sections = list(map(lambda x: parent(parent(parent(parent(parent(parent(x)))))), tmp))
+        print(list(map(lambda x: x.text, comment_sections)), sep = "\n\n\n")
+        # comment on first one (if we haven't already and keep scrolling)
+        if get_credentials()[0] not in str(comment_sections[0].text) and comment_sections[0] not in commented_set and "jules" not in comment_sections[0].text:
+           comment(comment_sections[0])
+           commented_set.add(comment_sections[0])
+           commented+=1
+           print("Commented on {} posts; {} to go...".format(commented, POSTS_TO_COMMENT_ON - commented))
         else:
-            print("Skipping\n\n{}\n\nAlready commented...\n".format(comment_button.text))
-        i+=1
+           print("Skipping\n\n{}\n\nAlready commented...\n".format(comment_sections[0].text))
+            
+        # scroll
+        scroll_height+=250
+        driver.execute_script("window.scrollTo(0, {});".format(scroll_height))
 
 def click(driver, element):
     driver.execute_script("arguments[0].click();", element)
 
-# need to find a way to comment on posts we haven't commented on
+# don't comment on sponsored posts
 
 if __name__ == "__main__":
     driver = webdriver.Chrome()
@@ -78,6 +89,6 @@ if __name__ == "__main__":
     except:
         None
 
-    comment_recent_posts(driver) 
+    posts = comment_on_x_posts(driver, POSTS_TO_COMMENT_ON)
     time.sleep(5)
     driver.close()
